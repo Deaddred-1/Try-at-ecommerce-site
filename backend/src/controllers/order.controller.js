@@ -1,4 +1,11 @@
 import prisma from "../lib/prisma.js";
+import { sendEmail } from "../services/email.service.js";
+import {
+  orderPlacedTemplate,
+  orderConfirmedTemplate,
+  orderDeliveredTemplate,
+  adminNewOrderTemplate,
+} from "../services/templates.js";
 
 /* ============================================================
    USER: CREATE ORDER (COD)
@@ -12,21 +19,17 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Address required" });
     }
 
-    // Get user cart
     const cart = await prisma.cart.findUnique({
       where: { userId },
       include: {
-        items: {
-          include: { product: true }
-        }
-      }
+        items: { include: { product: true } },
+      },
     });
 
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // Calculate totals
     const subtotal = cart.items.reduce((sum, item) => {
       const price =
         item.product.discountedPrice ?? item.product.price;
@@ -36,7 +39,6 @@ export const createOrder = async (req, res) => {
     const shipping = 0;
     const total = subtotal + shipping;
 
-    // Create order (with items + address snapshot)
     const order = await prisma.order.create({
       data: {
         userId,
@@ -49,7 +51,7 @@ export const createOrder = async (req, res) => {
             price:
               item.product.discountedPrice ??
               item.product.price,
-          }))
+          })),
         },
         address: {
           create: {
@@ -61,15 +63,33 @@ export const createOrder = async (req, res) => {
             state: address.state,
             postalCode: address.postalCode,
             country: address.country,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
-    // Clear cart
     await prisma.cartItem.deleteMany({
-      where: { cartId: cart.id }
+      where: { cartId: cart.id },
     });
+
+    // 🔥 Send Emails
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (user?.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Order Placed Successfully 🎉",
+        html: orderPlacedTemplate(order.id, total),
+      });
+
+      await sendEmail({
+        to: process.env.ADMIN_EMAIL,
+        subject: "New Order Received 🛒",
+        html: adminNewOrderTemplate(order.id, user.email, total),
+      });
+    }
 
     res.json({ orderId: order.id });
 
@@ -90,12 +110,10 @@ export const getMyOrders = async (req, res) => {
     const orders = await prisma.order.findMany({
       where: { userId },
       include: {
-        items: {
-          include: { product: true }
-        },
-        address: true
+        items: { include: { product: true } },
+        address: true,
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
 
     res.json(orders);
@@ -113,11 +131,9 @@ export const getAllOrders = async (req, res) => {
     include: {
       user: true,
       address: true,
-      items: {
-        include: { product: true }
-      }
+      items: { include: { product: true } },
     },
-    orderBy: { createdAt: "desc" }
+    orderBy: { createdAt: "desc" },
   });
 
   res.json(orders);
@@ -134,11 +150,34 @@ export const updateOrderStatus = async (req, res) => {
 
     const order = await prisma.order.update({
       where: { id },
-      data: { status }
+      data: { status },
+      include: { user: true },
     });
 
+    // 🔥 Send status-based emails
+    if (order.user?.email) {
+
+      if (status === "CONFIRMED") {
+        await sendEmail({
+          to: order.user.email,
+          subject: "Your Order is Confirmed ✅",
+          html: orderConfirmedTemplate(order.id),
+        });
+      }
+
+      if (status === "DELIVERED") {
+        await sendEmail({
+          to: order.user.email,
+          subject: "Order Delivered 📦",
+          html: orderDeliveredTemplate(order.id),
+        });
+      }
+    }
+
     res.json(order);
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Failed to update status" });
   }
 };
@@ -152,15 +191,20 @@ export const deleteOrder = async (req, res) => {
     const { id } = req.params;
 
     await prisma.order.delete({
-      where: { id }
+      where: { id },
     });
 
     res.json({ message: "Order removed" });
+
   } catch (err) {
     res.status(500).json({ message: "Failed to delete order" });
   }
 };
 
+
+/* ============================================================
+   USER: CREATE MANUAL UPI ORDER
+============================================================ */
 export const createManualUpiOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -173,10 +217,8 @@ export const createManualUpiOrder = async (req, res) => {
     const cart = await prisma.cart.findUnique({
       where: { userId },
       include: {
-        items: {
-          include: { product: true }
-        }
-      }
+        items: { include: { product: true } },
+      },
     });
 
     if (!cart || cart.items.length === 0) {
@@ -187,7 +229,6 @@ export const createManualUpiOrder = async (req, res) => {
       const price =
         item.product.discountedPrice ??
         item.product.price;
-
       return sum + price * item.quantity;
     }, 0);
 
@@ -208,24 +249,43 @@ export const createManualUpiOrder = async (req, res) => {
             city: address.city,
             state: address.state,
             postalCode: address.postalCode,
-            country: address.country
-          }
+            country: address.country,
+          },
         },
         items: {
-          create: cart.items.map(item => ({
+          create: cart.items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
             price:
               item.product.discountedPrice ??
-              item.product.price
-          }))
-        }
-      }
+              item.product.price,
+          })),
+        },
+      },
     });
 
     await prisma.cartItem.deleteMany({
-      where: { cartId: cart.id }
+      where: { cartId: cart.id },
     });
+
+    // 🔥 Send emails
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (user?.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Order Placed Successfully 🎉",
+        html: orderPlacedTemplate(order.id, total),
+      });
+
+      await sendEmail({
+        to: process.env.ADMIN_EMAIL,
+        subject: "New Order Received 🛒",
+        html: adminNewOrderTemplate(order.id, user.email, total),
+      });
+    }
 
     res.json({ orderId: order.id });
 

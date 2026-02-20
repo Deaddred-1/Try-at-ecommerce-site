@@ -49,7 +49,7 @@ model Address {
   country    String
   isDefault  Boolean @default(false)
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Product {
@@ -81,7 +81,7 @@ model Order {
   items   OrderItem[]
   address AddressSnapshot?
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model OrderItem {
@@ -91,7 +91,7 @@ model OrderItem {
   quantity  Int
   price     Int
 
-  order   Order   @relation(fields: [orderId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 }
 
@@ -106,7 +106,7 @@ model AddressSnapshot {
   postalCode String
   country    String
 
-  order   Order  @relation(fields: [orderId], references: [id])
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId String @unique
 }
 
@@ -135,7 +135,7 @@ model ProductTag {
 
 model Cart {
   id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @unique
   createdAt DateTime @default(now())
 
@@ -144,7 +144,7 @@ model Cart {
 
 model CartItem {
   id        String  @id @default(uuid())
-  cart      Cart    @relation(fields: [cartId], references: [id])
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   cartId    String
   product   Product @relation(fields: [productId], references: [id])
   productId String
@@ -154,7 +154,7 @@ model CartItem {
 }
 
 model Wishlist {
-  user      User    @relation(fields: [userId], references: [id])
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   product   Product @relation(fields: [productId], references: [id])
   productId String
