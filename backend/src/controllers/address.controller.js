@@ -1,8 +1,5 @@
 import prisma from "../lib/prisma.js";
 
-/* ---------------------------
-   GET ALL ADDRESSES
----------------------------- */
 export const getAddresses = async (req, res) => {
   const userId = req.user.userId;
 
@@ -14,9 +11,6 @@ export const getAddresses = async (req, res) => {
   res.json(addresses);
 };
 
-/* ---------------------------
-   ADD ADDRESS
----------------------------- */
 export const addAddress = async (req, res) => {
   const userId = req.user.userId;
   const {
@@ -35,7 +29,6 @@ export const addAddress = async (req, res) => {
     return res.status(400).json({ message: "All required fields missing" });
   }
 
-  // If setting new default → unset previous default
   if (isDefault) {
     await prisma.address.updateMany({
       where: { userId },
@@ -61,9 +54,6 @@ export const addAddress = async (req, res) => {
   res.json(address);
 };
 
-/* ---------------------------
-   DELETE ADDRESS
----------------------------- */
 export const deleteAddress = async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;
@@ -75,9 +65,6 @@ export const deleteAddress = async (req, res) => {
   res.json({ message: "Address deleted" });
 };
 
-/* ---------------------------
-   SET DEFAULT ADDRESS
----------------------------- */
 export const setDefaultAddress = async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;

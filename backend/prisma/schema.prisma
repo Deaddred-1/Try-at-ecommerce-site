@@ -29,6 +29,7 @@ enum Role {
 
 enum OrderStatus {
   PENDING
+  PAYMENT_PENDING_VERIFICATION
   CONFIRMED
   SHIPPED
   DELIVERED
@@ -58,11 +59,9 @@ model Product {
   category        String
   baseColor       String
   description     String
-  material        String?
-  weight          Float?
   discountedPrice Int?
   isPremium       Boolean  @default(false)
-  quantity        Int      @default(0)
+  inStock         Boolean  @default(true)
   createdAt       DateTime @default(now())
 
   images     ProductImage[]
