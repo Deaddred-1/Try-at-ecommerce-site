@@ -1,4 +1,4 @@
-# SYLERA – Full Stack E-commerce Platform
+# SYLERA – A try at Full Stack E-commerce Platform
 
 SYLERA is a try at building a production-ready full-stack e-commerce web application built using the MERN ecosystem with Prisma + PostgreSQL.
 
