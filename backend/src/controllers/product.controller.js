@@ -16,7 +16,6 @@ export const getProducts = async (req, res) => {
 
     const filters = {};
 
-    // Price filter
     if (minPrice || maxPrice) {
       filters.price = {};
       if (minPrice) filters.price.gte = Number(minPrice);
@@ -25,16 +24,9 @@ export const getProducts = async (req, res) => {
 
     if (category) filters.category = category;
     if (baseColor) filters.baseColor = baseColor;
+    if (inStock === "true") filters.inStock = true;
+    if (isPremium === "true") filters.isPremium = true;
 
-    if (inStock === "true") {
-      filters.quantity = { gt: 0 };
-    }
-
-    if (isPremium === "true") {
-      filters.isPremium = true;
-    }
-
-    // Sorting
     let orderBy = { createdAt: "desc" };
     if (sort === "price_asc") orderBy = { price: "asc" };
     if (sort === "price_desc") orderBy = { price: "desc" };
@@ -44,10 +36,7 @@ export const getProducts = async (req, res) => {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where: filters,
-        include: {
-          images: true,
-          tags: { include: { tag: true } },
-        },
+        include: { images: true },
         orderBy,
         skip,
         take: Number(limit),
@@ -64,21 +53,16 @@ export const getProducts = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("GET PRODUCTS ERROR:", err);
+    console.error(err);
     res.status(500).json({ message: "Failed to fetch products" });
   }
 };
 
 export const getProductById = async (req, res) => {
   try {
-    const { id } = req.params;
-
     const product = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        images: true,
-        tags: { include: { tag: true } },
-      },
+      where: { id: req.params.id },
+      include: { images: true },
     });
 
     if (!product) {
@@ -87,7 +71,6 @@ export const getProductById = async (req, res) => {
 
     res.json(product);
   } catch (err) {
-    console.error("GET PRODUCT ERROR:", err);
     res.status(500).json({ message: "Failed to fetch product" });
   }
 };
@@ -101,10 +84,15 @@ export const createProduct = async (req, res) => {
       category,
       baseColor,
       description,
-      quantity,
       isPremium,
-      imageUrls = [],
+      inStock,
     } = req.body;
+
+    const imageFiles = req.files || [];
+
+    const imageUrls = imageFiles.map(
+      (file) => `/uploads/products/${file.filename}`
+    );
 
     const product = await prisma.product.create({
       data: {
@@ -116,8 +104,8 @@ export const createProduct = async (req, res) => {
         category,
         baseColor,
         description,
-        quantity: Number(quantity),
-        isPremium: Boolean(isPremium),
+        isPremium: isPremium === "true" || isPremium === true,
+        inStock: inStock === "true" || inStock === true,
         images: {
           create: imageUrls.map((url) => ({
             imageUrl: url,
@@ -129,7 +117,7 @@ export const createProduct = async (req, res) => {
 
     res.status(201).json(product);
   } catch (err) {
-    console.error("CREATE PRODUCT ERROR:", err);
+    console.error(err);
     res.status(500).json({ message: "Failed to create product" });
   }
 };
@@ -147,28 +135,29 @@ export const updateProduct = async (req, res) => {
       description,
       isPremium,
       inStock,
-      imageUrls,
     } = req.body;
 
     const updateData = {};
 
-    if (name !== undefined) updateData.name = name;
-    if (price !== undefined) updateData.price = Number(price);
+    if (name) updateData.name = name;
+    if (price) updateData.price = Number(price);
     if (discountedPrice !== undefined)
       updateData.discountedPrice = discountedPrice
         ? Number(discountedPrice)
         : null;
-    if (category !== undefined) updateData.category = category;
-    if (baseColor !== undefined) updateData.baseColor = baseColor;
-    if (description !== undefined)
-      updateData.description = description;
+    if (category) updateData.category = category;
+    if (baseColor) updateData.baseColor = baseColor;
+    if (description) updateData.description = description;
     if (isPremium !== undefined)
-      updateData.isPremium = Boolean(isPremium);
+      updateData.isPremium = isPremium === "true" || isPremium === true;
     if (inStock !== undefined)
-      updateData.inStock = Boolean(inStock);
+      updateData.inStock = inStock === "true" || inStock === true;
 
-    // Only update images if provided
-    if (imageUrls && Array.isArray(imageUrls)) {
+    if (req.files && req.files.length > 0) {
+      const imageUrls = req.files.map(
+        (file) => `/uploads/products/${file.filename}`
+      );
+
       updateData.images = {
         deleteMany: {},
         create: imageUrls.map((url) => ({
@@ -180,21 +169,20 @@ export const updateProduct = async (req, res) => {
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: updateData,
+      include: { images: true },
     });
 
     res.json(updatedProduct);
   } catch (err) {
-    console.error("UPDATE PRODUCT ERROR:", err);
+    console.error(err);
     res.status(500).json({ message: "Failed to update product" });
   }
 };
-
 
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // First delete related images
     await prisma.productImage.deleteMany({
       where: { productId: id },
     });
@@ -203,9 +191,9 @@ export const deleteProduct = async (req, res) => {
       where: { id },
     });
 
-    res.json({ message: "Product deleted successfully" });
+    res.json({ message: "Deleted successfully" });
   } catch (err) {
-    console.error("DELETE PRODUCT ERROR:", err);
-    res.status(500).json({ message: "Failed to delete product" });
+    console.error(err);
+    res.status(500).json({ message: "Delete failed" });
   }
 };

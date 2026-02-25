@@ -1,8 +1,5 @@
 import prisma from "../lib/prisma.js";
 
-/* --------------------------------
-   GET CART
---------------------------------- */
 export const getCart = async (req, res) => {
   try {
     if (!req.user?.userId) {
@@ -29,26 +26,24 @@ export const getCart = async (req, res) => {
     }
 
     const formattedItems = cart.items.map((item) => ({
-      id: item.product.id,
+      id: item.productId, // ← IMPORTANT: use productId
       name: item.product.name,
       price:
         item.product.discountedPrice ??
         item.product.price,
-      image: item.product.images[0]?.imageUrl,
+      image:
+        item.product.images[0]?.imageUrl || null,
       quantity: item.quantity,
     }));
 
     res.json({ items: formattedItems });
+
   } catch (err) {
     console.error("GET CART ERROR:", err);
     res.status(500).json({ message: "Failed to load cart" });
   }
 };
 
-
-/* --------------------------------
-   ADD TO CART
---------------------------------- */
 export const addToCart = async (req, res) => {
   try {
     if (!req.user?.userId) {
@@ -73,16 +68,6 @@ export const addToCart = async (req, res) => {
     if (!cart) {
       cart = await prisma.cart.create({
         data: { userId },
-      });
-    }
-
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
-
-    if (!product) {
-      return res.status(404).json({
-        message: "Product not found",
       });
     }
 
@@ -118,15 +103,10 @@ export const addToCart = async (req, res) => {
     console.error("ADD TO CART ERROR:", err);
     res.status(500).json({
       message: "Failed to add to cart",
-      error: err.message,
     });
   }
 };
 
-
-/* --------------------------------
-   UPDATE QUANTITY
---------------------------------- */
 export const updateQuantity = async (req, res) => {
   try {
     if (!req.user?.userId) {
@@ -138,12 +118,6 @@ export const updateQuantity = async (req, res) => {
     const userId = req.user.userId;
     const { productId, quantity } = req.body;
 
-    if (quantity < 0) {
-      return res.status(400).json({
-        message: "Invalid quantity",
-      });
-    }
-
     const cart = await prisma.cart.findUnique({
       where: { userId },
     });
@@ -154,7 +128,7 @@ export const updateQuantity = async (req, res) => {
       });
     }
 
-    if (quantity === 0) {
+    if (quantity <= 0) {
       await prisma.cartItem.delete({
         where: {
           cartId_productId: {
@@ -185,10 +159,6 @@ export const updateQuantity = async (req, res) => {
   }
 };
 
-
-/* --------------------------------
-   REMOVE FROM CART
---------------------------------- */
 export const removeFromCart = async (req, res) => {
   try {
     if (!req.user?.userId) {

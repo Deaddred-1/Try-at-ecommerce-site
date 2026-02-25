@@ -8,9 +8,6 @@ import { sendOtpSms } from "../services/sms.service.js";
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 5);
 
-/* ============================================================
-   SEND OTP (SMS SIMULATED)
-============================================================ */
 export const sendOtp = async (req, res) => {
   try {
     const { phone } = req.body;
@@ -39,7 +36,7 @@ export const sendOtp = async (req, res) => {
       },
     });
 
-    // 🔥 Use SMS service (currently simulated)
+    // Use SMS service (currently simulated)
     sendOtpSms(phone, otp);
 
     res.json({ message: "OTP sent" });
@@ -50,10 +47,6 @@ export const sendOtp = async (req, res) => {
   }
 };
 
-
-/* ============================================================
-   VERIFY OTP
-============================================================ */
 export const verifyOtp = async (req, res) => {
   try {
     const { phone, otp } = req.body;
@@ -116,10 +109,6 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-
-/* ============================================================
-   COMPLETE PROFILE (ACCOUNT CREATION)
-============================================================ */
 export const completeProfile = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -148,7 +137,7 @@ export const completeProfile = async (req, res) => {
       },
     });
 
-    // 🔥 Send Welcome Email
+    // Send Welcome Email
     if (user.email) {
       await sendEmail({
         to: user.email,
@@ -178,10 +167,6 @@ export const completeProfile = async (req, res) => {
   }
 };
 
-
-/* ============================================================
-   GET CURRENT USER
-============================================================ */
 export const getMe = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({

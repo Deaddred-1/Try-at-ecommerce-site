@@ -7,9 +7,6 @@ import {
   adminNewOrderTemplate,
 } from "../services/templates.js";
 
-/* ============================================================
-   USER: CREATE ORDER (COD)
-============================================================ */
 export const createOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -72,7 +69,7 @@ export const createOrder = async (req, res) => {
       where: { cartId: cart.id },
     });
 
-    // 🔥 Send Emails
+    // Send Emails
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -99,10 +96,6 @@ export const createOrder = async (req, res) => {
   }
 };
 
-
-/* ============================================================
-   USER: GET MY ORDERS
-============================================================ */
 export const getMyOrders = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -122,10 +115,6 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-
-/* ============================================================
-   ADMIN: GET ALL ORDERS
-============================================================ */
 export const getAllOrders = async (req, res) => {
   const orders = await prisma.order.findMany({
     include: {
@@ -139,10 +128,6 @@ export const getAllOrders = async (req, res) => {
   res.json(orders);
 };
 
-
-/* ============================================================
-   ADMIN: UPDATE ORDER STATUS
-============================================================ */
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -154,7 +139,7 @@ export const updateOrderStatus = async (req, res) => {
       include: { user: true },
     });
 
-    // 🔥 Send status-based emails
+    // Send status-based emails
     if (order.user?.email) {
 
       if (status === "CONFIRMED") {
@@ -182,10 +167,6 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-
-/* ============================================================
-   ADMIN: DELETE ORDER
-============================================================ */
 export const deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -201,10 +182,6 @@ export const deleteOrder = async (req, res) => {
   }
 };
 
-
-/* ============================================================
-   USER: CREATE MANUAL UPI ORDER
-============================================================ */
 export const createManualUpiOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -268,7 +245,7 @@ export const createManualUpiOrder = async (req, res) => {
       where: { cartId: cart.id },
     });
 
-    // 🔥 Send emails
+    // Send emails
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });

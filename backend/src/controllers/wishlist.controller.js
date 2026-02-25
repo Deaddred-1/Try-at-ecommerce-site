@@ -1,8 +1,5 @@
 import prisma from "../lib/prisma.js";
 
-/* ===============================
-   GET USER WISHLIST
-================================ */
 export const getWishlist = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -25,9 +22,6 @@ export const getWishlist = async (req, res) => {
   }
 };
 
-/* ===============================
-   ADD TO WISHLIST
-================================ */
 export const addToWishlist = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -51,9 +45,6 @@ export const addToWishlist = async (req, res) => {
   }
 };
 
-/* ===============================
-   REMOVE FROM WISHLIST
-================================ */
 export const removeFromWishlist = async (req, res) => {
   try {
     const userId = req.user.userId;

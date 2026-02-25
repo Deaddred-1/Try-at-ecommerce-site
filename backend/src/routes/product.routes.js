@@ -8,13 +8,29 @@ import {
 } from "../controllers/product.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { requireAdmin } from "../middleware/admin.middleware.js";
+import { upload } from "../middleware/upload.middleware.js";
 
 const router = express.Router();
 
 router.get("/", getProducts);
 router.get("/:id", getProductById);
-router.post("/", requireAuth, requireAdmin, createProduct);
-router.patch("/:id", requireAuth, requireAdmin, updateProduct);
+
+router.post(
+  "/",
+  requireAuth,
+  requireAdmin,
+  upload.array("images", 5),
+  createProduct
+);
+
+router.patch(
+  "/:id",
+  requireAuth,
+  requireAdmin,
+  upload.array("images", 5),
+  updateProduct
+);
+
 router.delete("/:id", requireAuth, requireAdmin, deleteProduct);
 
 export default router;
